@@ -17,8 +17,8 @@ $query
             'data_type' => 'Bitrix\Iblock\ElementTable',
             'reference' => [
                 '=this.ID' => 'ref.IBLOCK_ID',
-                //добавим условие что нам нужны элементы с определеннм названием
-                '=ref.NAME' => new Bitrix\Main\DB\SqlExpression('?', 'Some element name'),
+                //добавим условие что нам нужны элементы с кодом hot
+                '=ref.CODE' => new Bitrix\Main\DB\SqlExpression('?', 'hot'),
             ],
         ]
     )
