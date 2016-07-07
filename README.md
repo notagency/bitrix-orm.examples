@@ -8,12 +8,12 @@
 
 #Пример 1. Джоин по нескольким условиям.
 
-Джоин Bitrix\Iblock\ElementTable по нескольким условиям.
+Выберем инфоблоки у которых количество элементов с кодом hot не меньше 3, а с кодом new не менее 5.
 
-```php
 $query = new \Bitrix\Main\Entity\Query(Bitrix\Iblock\IblockTable::getEntity());
 $query
-    ->registerRuntimeField('element', [
+    //джоиним элементы с кодом hot
+    ->registerRuntimeField('HOT_ELEMENT', [
             'data_type' => 'Bitrix\Iblock\ElementTable',
             'reference' => [
                 '=this.ID' => 'ref.IBLOCK_ID',
@@ -22,10 +22,39 @@ $query
             ],
         ]
     )
+    //считаем количество элементов с кодом hot
+    ->registerRuntimeField('HOT_ELEMENT_COUNT', [
+        'data_type'=>'integer',
+        'expression' => ['COUNT(%s)', 'HOT_ELEMENT.ID']
+    ])
+    //джоиним элементы с кодом new
+    ->registerRuntimeField('NEW_ELEMENT', [
+            'data_type' => 'Bitrix\Iblock\ElementTable',
+            'reference' => [
+                '=this.ID' => 'ref.IBLOCK_ID',
+                //добавим условие что нам нужны элементы с кодом new
+                '=ref.CODE' => new Bitrix\Main\DB\SqlExpression('?', 'new'),
+            ],
+        ]
+    )
+    //считаем количество элементов с кодом new
+    ->registerRuntimeField('NEW_ELEMENT_COUNT', [
+        'data_type'=>'integer',
+        'expression' => ['COUNT(%s)', 'NEW_ELEMENT.ID']
+    ])
+    //выбираем ID инфоблока, кол-во hot и new элементов
     ->setSelect([
         'ID',
-        'element',
-    ]);
+        'HOT_ELEMENT_COUNT',
+        'NEW_ELEMENT_COUNT',
+    ])
+    //фильтруем
+    ->setFilter([
+        '>HOT_ELEMENT_COUNT' => 3,
+        '>NEW_ELEMENT_COUNT' => 5,
+    ])
+    //группируем выборку по ID инфоблока
+    ->setGroup('ID');
 
 ```
 
