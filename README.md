@@ -24,7 +24,7 @@ $query
         ]
     )
     //считаем количество элементов с кодом hot
-    ->registerRuntimeField('HOT_ELEMENT_COUNT', [
+    ->registerRuntimeField('HOT_ELEMENTS_COUNT', [
         'data_type'=>'integer',
         'expression' => ['COUNT(%s)', 'HOT_ELEMENT.ID']
     ])
@@ -39,7 +39,7 @@ $query
         ]
     )
     //считаем количество элементов с кодом new
-    ->registerRuntimeField('NEW_ELEMENT_COUNT', [
+    ->registerRuntimeField('NEW_ELEMENTS_COUNT', [
         'data_type'=>'integer',
         'expression' => ['COUNT(%s)', 'NEW_ELEMENT.ID']
     ])
