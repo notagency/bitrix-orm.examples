@@ -20,7 +20,8 @@ $query
         ]
     )
     ->setSelect([
-        'element'
+        'ID',
+        'element',
     ]);
 
 ```
@@ -49,7 +50,12 @@ $query
     ->setFilter([
         '!min_element_id' => false, 
         'NAME' => 'News'
+    ])
+    //группируем по ID инфоблока
+    ->setGroup([
+        'ID',
     ]);
+
 ```
 
 Наступил на грабли в строке 
