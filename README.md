@@ -1,76 +1,67 @@
 Прочитав [статью](http://alexvaleev.ru/orm-d7/) Алексея Валеева понимаешь насколько не хватает типовых примеров работы с ORM в BitrixFramework. Пополним коллекцию примеров с неочевидной логикой.
 
 * [Пример 1](#Пример-1)
+* [Пример 2](#Пример-2)
 
 #Пример 1
 
-Допустим есть 2 таблицы:
-
-**book**
-
-| Поле | Тип |
-| --- | --- |
-| ID | int, primary key |
-| NAME | string |
-| AUTHOR_ID | int |
-
-**author**
-
-| Поле | Тип |
-| --- | --- |
-| ID | int, primary key |
-| NAME | string |
-
-Задача: выбрать авторов с фамилией Петров у которых есть хотя бы одна книга. При этом в выборке каждая строка должна соответствовать уникальному автору, т.е. авторы не должны дублироваться.
-На чистом SQL задача решается следующим образом:
-
-```sql
-SELECT
-  `author`.`ID` AS `AUTHOR_ID`
-FROM `author`
-  LEFT JOIN `books`
-    ON `books`.`AUTHOR_ID` = `author`.`ID`
-GROUP BY `AUTHOR_ID`
-WHERE `author`.`NAME` LIKE "%Петров%"
-HAVING MIN(`book`.`ID`)IS NOT NULL
-    AND MIN(`book`.`ID`) <> 0
-```
-
-Т.е. мы группируем всех авторов по id и указываем что в каждой группе минимальный id книги должен быть не пустой и не равен 0. 
-
-SQL составлен, переносим его в ORM.
+Джоин Bitrix\Iblock\ElementTable по нескольким условиям
 
 ```php
-$query = new Query(AuthorTable::getEntity());
-//джоин таблицы с книгками
-$query->registerRuntimeField('BOOK', [
-    'data_type' => 'BookTable',
-    'reference' => [
-        '=this.ID' => 'ref.AUTHOR_ID'
-    ]
-]);
-//регистрируем поле с минимальным ID книги (нам не важно какая именно эта книга, важно пустое ли оно или заполнено)
-$query->registerRuntimeField('MIN_BOOK_ID', [
-    'data_type'=>'integer',
-    'expression' => ['MIN(%s)', 'BOOK.ID']
-]);
-//фильтруем
-$query->setFilter([
-    '!MIN_BOOK_ID' => false, 
-    'NAME' => 'Петров'
-]);
+$query = new \Bitrix\Main\Entity\Query(Bitrix\Iblock\IblockTable::getEntity());
+$query
+    ->registerRuntimeField('element', [
+            'data_type' => 'Bitrix\Iblock\ElementTable',
+            'reference' => [
+                '=this.ID' => 'ref.IBLOCK_ID',
+                //добавим условие что нам нужны элементы с определеннм названием
+                '=ref.NAME' => new Bitrix\Main\DB\SqlExpression('?', 'Some element name'),
+            ],
+        ]
+    )
+    ->setSelect([
+        'element'
+    ]);
+
 ```
 
-Самая засада лично для меня здесь крылась в строке 
+#Пример 2
+
+Выберем инфоблоки с названием News у которых есть хотя бы один элемент. При этом в выборке каждая строка должна соответствовать уникальному инфоблоку, т.е. инфоблоки в выборке не должны дублироваться.
+
+
 ```php
-'expression' => ['MIN(%s)', 'book.ID'] 
+$query = new \Bitrix\Main\Entity\Query(Bitrix\Iblock\IblockTable::getEntity());
+$query
+    ->registerRuntimeField('element', [
+            'data_type' => 'Bitrix\Iblock\ElementTable',
+            'reference' => [
+                '=this.ID' => 'ref.IBLOCK_ID',
+            ],
+        ]
+    )
+    //регистрируем поле с минимальным ID эл-та (нам не важно какой именно этот элемент, важно есть ли в принципе минимальый ID или нет)
+    ->registerRuntimeField('min_element_id', [
+        'data_type'=>'integer',
+        'expression' => ['MIN(%s)', 'element.ID']
+    ])
+    //фильтруем
+    ->setFilter([
+        '!min_element_id' => false, 
+        'NAME' => 'News'
+    ]);
 ```
+
+Наступил на грабли в строке 
+```php
+'expression' => ['MIN(%s)', 'element.ID']
+```
+тут нужно быть внимательным.
+
 Например, если указать
 ```php
-'expression' => ['MIN(BOOK.ID)'] 
+'expression' => ['MIN(element.ID)']
 ```
-эта конструкция работать не будет т.к. в SQL запрос, в условие HAVING, попадет именно строка _MIN(BOOK.ID)_. 
+эта конструкция работать не будет т.к. в в условие HAVING запроса попадет именно строка ```MIN(element.ID)```. 
 
-И по скольку битрикс использует свои алиасы для полей и таблиц - таблица BOOK не будет найдена. Соответственно для того чтобы битрикс корректно заменил BOOK.ID на нужный алиас - это поле необходимо передавать вторым элементом в массиве expression.
-
-Это совершенно не очевидная вещь о которой можно догадаться только заглянув в исходный код ядра битрикса.
+И по скольку битрикс использует свои алиасы для полей и таблиц - таблица element не будет найдена. Соответственно для того чтобы битрикс корректно заменил element.ID на нужный алиас - это поле необходимо передавать вторым элементом в массиве expression.
