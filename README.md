@@ -46,13 +46,13 @@ $query
     //выбираем ID инфоблока, кол-во hot и new элементов
     ->setSelect([
         'ID',
-        'HOT_ELEMENT_COUNT',
-        'NEW_ELEMENT_COUNT',
+        'HOT_ELEMENTS_COUNT',
+        'NEW_ELEMENTS_COUNT',
     ])
     //фильтруем
     ->setFilter([
-        '>HOT_ELEMENT_COUNT' => 3,
-        '>NEW_ELEMENT_COUNT' => 5,
+        '>HOT_ELEMENTS_COUNT' => 3,
+        '>NEW_ELEMENTS_COUNT' => 5,
     ])
     //группируем выборку по ID инфоблока
     ->setGroup('ID');
